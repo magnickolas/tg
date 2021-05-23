@@ -9,7 +9,7 @@ from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
-from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len
+from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len, word_forth, word_back
 
 log = logging.getLogger(__name__)
 
@@ -130,6 +130,7 @@ class StatusView:
         self.x = 0
         self.stdscr = stdscr
         self.win = Win(stdscr.subwin(self.h, self.w, self.y, self.x))
+        self.win.keypad(True)
         self._refresh = self.win.refresh
 
     def resize(self, rows: int, cols: int) -> None:
@@ -146,22 +147,29 @@ class StatusView:
     def get_input(self, prefix: str = "") -> Optional[str]:
         curses.curs_set(1)
         buff = ""
+        pos = 0 # cursor position within the buffer
+        x0 = 0 # index of the first displayed char
+        wline = self.w - string_len_dwc(prefix) # max. width of the displayed part of the buffer
 
         try:
             while True:
                 self.win.erase()
-                line = buff[-(self.w - 1) :]
+                line = buff[x0:x0+wline-1]
                 self.win.addstr(0, 0, f"{prefix}{line}")
 
                 key = self.win.get_wch(
-                    0, min(string_len_dwc(buff + prefix), self.w - 1)
+                        0, string_len_dwc(line[:pos-x0] + prefix)
                 )
                 key = ord(key)
                 if key == 10:  # return
                     break
-                elif key == 127 or key == 8:  # del
+                elif key == 127:  # del
                     if buff:
                         buff = buff[:-1]
+                elif key in (8, 23):
+                    npos = word_back(buff[:pos])
+                    buff = buff[:npos] + buff[pos:]
+                    pos = npos
                 elif key in (7, 27):  # (^G, <esc>) cancel
                     return None
                 elif chr(key).isprintable():
