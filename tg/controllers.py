@@ -6,6 +6,7 @@ from functools import partial, wraps
 from queue import Queue
 from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
+from subprocess import check_call, CalledProcessError
 
 from telegram.utils import AsyncResult
 
@@ -75,7 +76,7 @@ class Controller:
         self.tg = tg
         self.chat_size = 0.5
 
-    @bind(msg_handler, ["c"])
+    @bind(msg_handler, ["c", "с"])
     def show_chat_info(self) -> None:
         """Show chat information"""
         chat = self.model.chats.chats[self.model.current_chat]
@@ -87,7 +88,7 @@ class Controller:
                 "\n".join(f"{k}: {v}" for k, v in info.items() if v),
             )
 
-    @bind(msg_handler, ["u"])
+    @bind(msg_handler, ["u", "г"])
     def show_user_info(self) -> None:
         """Show user profile"""
         msg = MsgProxy(self.model.current_msg)
@@ -100,7 +101,7 @@ class Controller:
                 "\n".join(f"{k}: {v}" for k, v in info.items() if v),
             )
 
-    @bind(msg_handler, ["O"])
+    @bind(msg_handler, ["O", "Щ"])
     def save_file_in_folder(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
@@ -114,7 +115,7 @@ class Controller:
         if self.model.copy_files(chat_id, msg_ids, config.DOWNLOAD_DIR):
             self.present_info(f"Copied files to {config.DOWNLOAD_DIR}")
 
-    @bind(msg_handler, ["o"])
+    @bind(msg_handler, ["o", "щ"])
     def open_url(self) -> None:
         msg = MsgProxy(self.model.current_msg)
         if not msg.is_text:
@@ -162,22 +163,22 @@ class Controller:
         with suspend(self.view) as s:
             s.run_with_input(config.VIEW_TEXT_CMD, _help)
 
-    @bind(chat_handler, ["bp"])
-    @bind(msg_handler, ["bp"])
+    @bind(chat_handler, ["bp", "из"])
+    @bind(msg_handler, ["bp", "из"])
     def breakpoint(self) -> None:
         with suspend(self.view):
             breakpoint()
 
-    @bind(chat_handler, ["q"])
-    @bind(msg_handler, ["q"])
+    @bind(chat_handler, ["q", "й"])
+    @bind(msg_handler, ["q", "й"])
     def quit(self) -> str:
         return "QUIT"
 
-    @bind(msg_handler, ["h", "^D"])
+    @bind(msg_handler, ["h", "^D", "р"])
     def back(self) -> str:
         return "BACK"
 
-    @bind(msg_handler, ["m"])
+    @bind(msg_handler, ["m", "ь"])
     def jump_to_reply_msg(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
@@ -191,7 +192,7 @@ class Controller:
             )
         return self.render_msgs()
 
-    @bind(msg_handler, ["p"])
+    @bind(msg_handler, ["p", "з"])
     def forward_msgs(self) -> None:
         """Paste yanked msgs"""
         if not self.model.forward_msgs():
@@ -199,7 +200,7 @@ class Controller:
             return
         self.present_info("Forwarded msg(s)")
 
-    @bind(msg_handler, ["y"])
+    @bind(msg_handler, ["y", "н"])
     def yank_msgs(self) -> None:
         """Copy msgs to clipboard and internal buffer to forward"""
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
@@ -248,30 +249,30 @@ class Controller:
         self.render_msgs()
         self.present_info("Discarded selected messages")
 
-    @bind(msg_handler, ["G"])
+    @bind(msg_handler, ["G", "П"])
     def bottom_msg(self) -> None:
         if self.model.jump_bottom():
             self.render_msgs()
 
-    @bind(msg_handler, ["j", "^B", "^N"], repeat_factor=True)
+    @bind(msg_handler, ["j", "^B", "^N", "о"], repeat_factor=True)
     def next_msg(self, repeat_factor: int = 1) -> None:
         if self.model.next_msg(repeat_factor):
             self.render_msgs()
 
-    @bind(msg_handler, ["J"])
+    @bind(msg_handler, ["J", "О"])
     def jump_10_msgs_down(self) -> None:
         self.next_msg(10)
 
-    @bind(msg_handler, ["k", "^C", "^P"], repeat_factor=True)
+    @bind(msg_handler, ["k", "^C", "^P", "л"], repeat_factor=True)
     def prev_msg(self, repeat_factor: int = 1) -> None:
         if self.model.prev_msg(repeat_factor):
             self.render_msgs()
 
-    @bind(msg_handler, ["K"])
+    @bind(msg_handler, ["K", "Л"])
     def jump_10_msgs_up(self) -> None:
         self.prev_msg(10)
 
-    @bind(msg_handler, ["r"])
+    @bind(msg_handler, ["r", "к"])
     def reply_message(self) -> None:
         if not self.can_send_msg():
             self.present_info("Can't send msg in this chat")
@@ -287,7 +288,7 @@ class Controller:
         else:
             self.present_info("Message reply wasn't sent")
 
-    @bind(msg_handler, ["R"])
+    @bind(msg_handler, ["R", "К"])
     def reply_with_long_message(self) -> None:
         if not self.can_send_msg():
             self.present_info("Can't send msg in this chat")
@@ -311,7 +312,7 @@ class Controller:
                 else:
                     self.present_info("Message wasn't sent")
 
-    @bind(msg_handler, ["a", "i"])
+    @bind(msg_handler, ["a", "i", "ф", "ш"])
     def write_short_msg(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not self.can_send_msg() or chat_id is None:
@@ -325,7 +326,7 @@ class Controller:
             self.tg.send_chat_action(chat_id, ChatAction.chatActionCancel)
             self.present_info("Message wasn't sent")
 
-    @bind(msg_handler, ["A", "I"])
+    @bind(msg_handler, ["A", "I", "Ф", "Ш"])
     def write_long_msg(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not self.can_send_msg() or chat_id is None:
@@ -346,7 +347,7 @@ class Controller:
                     )
                     self.present_info("Message wasn't sent")
 
-    @bind(msg_handler, ["dd"])
+    @bind(msg_handler, ["dd", "вв"])
     def delete_msgs(self) -> None:
         is_deleted = self.model.delete_msgs()
         self.discard_selected_msgs()
@@ -354,7 +355,7 @@ class Controller:
             return self.present_error("Can't delete msg(s)")
         self.present_info("Message deleted")
 
-    @bind(msg_handler, ["S"])
+    @bind(msg_handler, ["S", "Ы"])
     def choose_and_send_file(self) -> None:
         """Call file picker and send chosen file based on mimetype"""
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
@@ -390,27 +391,32 @@ class Controller:
         fun = mime_map.get(mime, self.tg.send_doc)
         fun(file_path, chat_id)
 
-    @bind(msg_handler, ["sd"])
+    @bind(msg_handler, ["sd", "ыв"])
     def send_document(self) -> None:
         """Enter file path and send uncompressed"""
         self.send_file(self.tg.send_doc)
 
-    @bind(msg_handler, ["sp"])
+    @bind(msg_handler, ["sp", "ыз"])
     def send_picture(self) -> None:
         """Enter file path and send compressed image"""
         self.send_file(self.tg.send_photo)
 
-    @bind(msg_handler, ["sa"])
+    @bind(msg_handler, ["sa", "ыф"])
     def send_audio(self) -> None:
         """Enter file path and send as audio"""
         self.send_file(self.tg.send_audio)
 
-    @bind(msg_handler, ["sn"])
+    @bind(msg_handler, ["sn", "ыт"])
     def send_animation(self) -> None:
         """Enter file path and send as animation"""
         self.send_file(self.tg.send_animation)
 
-    @bind(msg_handler, ["sv"])
+    @bind(msg_handler, ["ss", "ыы"])
+    def send_screenshot(self) -> None:
+        """Send screenshot"""
+        self.send_screenshot_from_clipboard()
+
+    @bind(msg_handler, ["sv", "ым"])
     def send_video(self) -> None:
         """Enter file path and send compressed video"""
         file_path = self.view.status.get_input()
@@ -441,7 +447,24 @@ class Controller:
             send_file_fun(file_path, chat_id)
             self.present_info("File sent")
 
-    @bind(msg_handler, ["v"])
+    def send_screenshot_from_clipboard(
+        self,
+    ) -> None:
+        file_path = os.path.expanduser("/tmp/clipboard.png")
+        with open(file_path, "w") as f:
+            try:
+                check_call(["xclip", "-selection", "clipboard", "-t", "image/png", "-o"], stdout=f)
+            except CalledProcessError:
+                return self.present_info("Failed to save screenshot")
+
+        if not file_path or not os.path.isfile(file_path):
+            return self.present_info("Given path to file does not exist")
+
+        if chat_id := self.model.chats.id_by_index(self.model.current_chat):
+            self.tg.send_photo(file_path, chat_id)
+            self.present_info("Screenshot sent")
+
+    @bind(msg_handler, ["v", "м"])
     def record_voice(self) -> None:
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
@@ -467,7 +490,7 @@ class Controller:
         self.tg.send_voice(file_path, chat_id, duration, waveform)
         self.present_info(f"Sent voice msg: {file_path}")
 
-    @bind(msg_handler, ["D"])
+    @bind(msg_handler, ["D", "В"])
     def download_current_file(self) -> None:
         msg = MsgProxy(self.model.current_msg)
         log.debug("Downloading msg: %s", msg.msg)
@@ -521,13 +544,13 @@ class Controller:
             )
         return self._open_msg(msg, cmd)
 
-    @bind(msg_handler, ["l", "^J"])
+    @bind(msg_handler, ["l", "^J", "д"])
     def open_current_msg(self) -> None:
         """Open msg or file with cmd in mailcap"""
         msg = MsgProxy(self.model.current_msg)
         self._open_msg(msg)
 
-    @bind(msg_handler, ["e"])
+    @bind(msg_handler, ["e", "у"])
     def edit_msg(self) -> None:
         msg = MsgProxy(self.model.current_msg)
         log.info("Editing msg: %s", msg.msg)
@@ -569,7 +592,7 @@ class Controller:
             with open(tmp.name) as f:
                 return [int(line.split()[0]) for line in f.readlines()]
 
-    @bind(chat_handler, ["ns"])
+    @bind(chat_handler, ["ns", "ты"])
     def new_secret(self) -> None:
         """Create new secret chat"""
         user_ids = self._get_user_ids()
@@ -577,7 +600,7 @@ class Controller:
             return
         self.tg.create_new_secret_chat(user_ids[0])
 
-    @bind(chat_handler, ["ng"])
+    @bind(chat_handler, ["ng", "тп"])
     def new_group(self) -> None:
         """Create new group"""
         user_ids = self._get_user_ids(is_multiple=True)
@@ -591,7 +614,7 @@ class Controller:
 
         self.tg.create_new_basic_group_chat(user_ids, title)
 
-    @bind(chat_handler, ["dd"])
+    @bind(chat_handler, ["dd", "вв"])
     def delete_chat(self) -> None:
         """Leave group/channel or delete private/secret chats"""
 
@@ -635,7 +658,7 @@ class Controller:
 
         self.present_info("Chat was deleted")
 
-    @bind(chat_handler, ["n"])
+    @bind(chat_handler, ["n", "т"])
     def next_found_chat(self) -> None:
         """Go to next found chat"""
         if self.model.set_current_chat_by_id(
@@ -643,7 +666,7 @@ class Controller:
         ):
             self.render()
 
-    @bind(chat_handler, ["N"])
+    @bind(chat_handler, ["N", "Т"])
     def prev_found_chat(self) -> None:
         """Go to previous found chat"""
         if self.model.set_current_chat_by_id(
@@ -651,7 +674,7 @@ class Controller:
         ):
             self.render()
 
-    @bind(chat_handler, ["/"])
+    @bind(chat_handler, ["/", "."])
     def search_contacts(self) -> None:
         """Search contacts and set jumps to it if found"""
         msg = self.view.status.get_input("/")
@@ -673,11 +696,11 @@ class Controller:
         if self.model.set_current_chat_by_id(chat_id):
             self.render()
 
-    @bind(chat_handler, ["c"])
+    @bind(chat_handler, ["c", "с"])
     def view_contacts(self) -> None:
         self._get_user_ids()
 
-    @bind(chat_handler, ["l", "^J", "^E"])
+    @bind(chat_handler, ["l", "^J", "^E", "д"])
     def handle_msgs(self) -> Optional[str]:
         rc = self.handle(msg_handler, 0.2)
         if rc == "QUIT":
@@ -685,32 +708,32 @@ class Controller:
         self.chat_size = 0.5
         self.resize()
 
-    @bind(chat_handler, ["g"])
+    @bind(chat_handler, ["g", "п"])
     def top_chat(self) -> None:
         if self.model.first_chat():
             self.render()
 
-    @bind(chat_handler, ["j", "^B", "^N"], repeat_factor=True)
-    @bind(msg_handler, ["]"])
+    @bind(chat_handler, ["j", "^B", "^N", "о"], repeat_factor=True)
+    @bind(msg_handler, ["]", "ъ"])
     def next_chat(self, repeat_factor: int = 1) -> None:
         if self.model.next_chat(repeat_factor):
             self.render()
 
-    @bind(chat_handler, ["k", "^C", "^P"], repeat_factor=True)
-    @bind(msg_handler, ["["])
+    @bind(chat_handler, ["k", "^C", "^P", "л"], repeat_factor=True)
+    @bind(msg_handler, ["[", "х"])
     def prev_chat(self, repeat_factor: int = 1) -> None:
         if self.model.prev_chat(repeat_factor):
             self.render()
 
-    @bind(chat_handler, ["J"])
+    @bind(chat_handler, ["J", "О"])
     def jump_10_chats_down(self) -> None:
         self.next_chat(10)
 
-    @bind(chat_handler, ["K"])
+    @bind(chat_handler, ["K", "Л"])
     def jump_10_chats_up(self) -> None:
         self.prev_chat(10)
 
-    @bind(chat_handler, ["u"])
+    @bind(chat_handler, ["u", "г"])
     def toggle_unread(self) -> None:
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]
@@ -718,12 +741,12 @@ class Controller:
         self.tg.toggle_chat_is_marked_as_unread(chat_id, toggle)
         self.render()
 
-    @bind(chat_handler, ["r"])
+    @bind(chat_handler, ["r", "к"])
     def read_msgs(self) -> None:
         self.model.view_all_msgs()
         self.render()
 
-    @bind(chat_handler, ["m"])
+    @bind(chat_handler, ["m", "ь"])
     def toggle_mute(self) -> None:
         # TODO: if it's msg to yourself, do not change its
         # notification setting, because we can't by documentation,
@@ -741,7 +764,7 @@ class Controller:
         self.tg.set_chat_nottification_settings(chat_id, notification_settings)
         self.render()
 
-    @bind(chat_handler, ["p"])
+    @bind(chat_handler, ["p", "з"])
     def toggle_pin(self) -> None:
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]

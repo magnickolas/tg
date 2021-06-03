@@ -22,9 +22,20 @@ MULTICHAR_KEYBINDINGS = (
     "sa",
     "sv",
     "sn",
+    "ss",
     "ns",
     "ng",
     "bp",
+    "вв",
+    "ыв",
+    "ыз",
+    "ыф",
+    "ым",
+    "ыт",
+    "ыы",
+    "ты",
+    "тп",
+    "из",
 )
 
 
@@ -82,13 +93,16 @@ class View:
         keys = repeat_factor = ""
 
         for _ in range(MAX_KEYBINDING_LENGTH):
-            ch = self.stdscr.getch()
+            ch = self.stdscr.get_wch()
             log.info("raw ch without unctrl: %s", ch)
-            try:
-                key = curses.unctrl(ch).decode()
-            except Exception:
-                log.warning("cant uncrtl: %s", ch)
-                break
+            if ch in "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя":
+                key = ch
+            else:
+                try:
+                    key = curses.unctrl(ch).decode()
+                except Exception:
+                    log.warning("cant uncrtl: %s", ch)
+                    break
             if key.isdigit():
                 repeat_factor += key
                 continue
