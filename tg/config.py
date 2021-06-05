@@ -48,8 +48,8 @@ else:
     )
 
 # TODO: use mailcap instead of editor
-LONG_MSG_CMD = "vim + -c 'startinsert' {file_path}"
-EDITOR = os.environ.get("EDITOR", "vi")
+LONG_MSG_CMD = "nvim + -c 'startinsert' {file_path}"
+EDITOR = os.environ.get("EDITOR", "nvim")
 
 if _os_name == _linux:
     DEFAULT_OPEN = "xdg-open {file_path}"

@@ -4,9 +4,9 @@ import shlex
 from datetime import datetime
 from functools import partial, wraps
 from queue import Queue
+from subprocess import CalledProcessError, check_call
 from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
-from subprocess import check_call, CalledProcessError
 
 from telegram.utils import AsyncResult
 
@@ -174,7 +174,7 @@ class Controller:
     def quit(self) -> str:
         return "QUIT"
 
-    @bind(msg_handler, ["h", "^D", "р"])
+    @bind(msg_handler, ["h", "^D", "р", "260`"])
     def back(self) -> str:
         return "BACK"
 
@@ -254,7 +254,7 @@ class Controller:
         if self.model.jump_bottom():
             self.render_msgs()
 
-    @bind(msg_handler, ["j", "^B", "^N", "о"], repeat_factor=True)
+    @bind(msg_handler, ["j", "^B", "^N", "о", "258`"], repeat_factor=True)
     def next_msg(self, repeat_factor: int = 1) -> None:
         if self.model.next_msg(repeat_factor):
             self.render_msgs()
@@ -263,7 +263,7 @@ class Controller:
     def jump_10_msgs_down(self) -> None:
         self.next_msg(10)
 
-    @bind(msg_handler, ["k", "^C", "^P", "л"], repeat_factor=True)
+    @bind(msg_handler, ["k", "^C", "^P", "л", "259`"], repeat_factor=True)
     def prev_msg(self, repeat_factor: int = 1) -> None:
         if self.model.prev_msg(repeat_factor):
             self.render_msgs()
@@ -453,7 +453,17 @@ class Controller:
         file_path = os.path.expanduser("/tmp/clipboard.png")
         with open(file_path, "w") as f:
             try:
-                check_call(["xclip", "-selection", "clipboard", "-t", "image/png", "-o"], stdout=f)
+                check_call(
+                    [
+                        "xclip",
+                        "-selection",
+                        "clipboard",
+                        "-t",
+                        "image/png",
+                        "-o",
+                    ],
+                    stdout=f,
+                )
             except CalledProcessError:
                 return self.present_info("Failed to save screenshot")
 
@@ -544,7 +554,7 @@ class Controller:
             )
         return self._open_msg(msg, cmd)
 
-    @bind(msg_handler, ["l", "^J", "д"])
+    @bind(msg_handler, ["l", "^J", "д", "261`"])
     def open_current_msg(self) -> None:
         """Open msg or file with cmd in mailcap"""
         msg = MsgProxy(self.model.current_msg)
@@ -700,7 +710,7 @@ class Controller:
     def view_contacts(self) -> None:
         self._get_user_ids()
 
-    @bind(chat_handler, ["l", "^J", "^E", "д"])
+    @bind(chat_handler, ["l", "^J", "^E", "д", "261`"])
     def handle_msgs(self) -> Optional[str]:
         rc = self.handle(msg_handler, 0.2)
         if rc == "QUIT":
@@ -713,13 +723,13 @@ class Controller:
         if self.model.first_chat():
             self.render()
 
-    @bind(chat_handler, ["j", "^B", "^N", "о"], repeat_factor=True)
+    @bind(chat_handler, ["j", "^B", "^N", "о", "258`"], repeat_factor=True)
     @bind(msg_handler, ["]", "ъ"])
     def next_chat(self, repeat_factor: int = 1) -> None:
         if self.model.next_chat(repeat_factor):
             self.render()
 
-    @bind(chat_handler, ["k", "^C", "^P", "л"], repeat_factor=True)
+    @bind(chat_handler, ["k", "^C", "^P", "л", "259`"], repeat_factor=True)
     @bind(msg_handler, ["[", "х"])
     def prev_chat(self, repeat_factor: int = 1) -> None:
         if self.model.prev_chat(repeat_factor):

@@ -1,9 +1,8 @@
 import curses
 import logging
+from _curses import window  # type: ignore
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
-
-from _curses import window  # type: ignore
 
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
@@ -95,7 +94,13 @@ class View:
         for _ in range(MAX_KEYBINDING_LENGTH):
             ch = self.stdscr.get_wch()
             log.info("raw ch without unctrl: %s", ch)
-            if ch in "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя":
+            if type(ch) is int:
+                keys = str(ch) + "`"
+                break
+            if (
+                ch
+                in "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+            ):
                 key = ch
             else:
                 try:
