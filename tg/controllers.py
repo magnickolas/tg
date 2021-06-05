@@ -1,6 +1,7 @@
 import logging
 import os
 import shlex
+from curses import KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_UP
 from datetime import datetime
 from functools import partial, wraps
 from queue import Queue
@@ -174,7 +175,7 @@ class Controller:
     def quit(self) -> str:
         return "QUIT"
 
-    @bind(msg_handler, ["h", "^D", "р", "260`"])
+    @bind(msg_handler, ["h", "^D", "р", f"{KEY_LEFT}`"])
     def back(self) -> str:
         return "BACK"
 
@@ -254,7 +255,7 @@ class Controller:
         if self.model.jump_bottom():
             self.render_msgs()
 
-    @bind(msg_handler, ["j", "^B", "^N", "о", "258`"], repeat_factor=True)
+    @bind(msg_handler, ["j", "^B", "^N", "о", f"{KEY_DOWN}`"], repeat_factor=True)
     def next_msg(self, repeat_factor: int = 1) -> None:
         if self.model.next_msg(repeat_factor):
             self.render_msgs()
@@ -263,7 +264,7 @@ class Controller:
     def jump_10_msgs_down(self) -> None:
         self.next_msg(10)
 
-    @bind(msg_handler, ["k", "^C", "^P", "л", "259`"], repeat_factor=True)
+    @bind(msg_handler, ["k", "^C", "^P", "л", f"{KEY_UP}`"], repeat_factor=True)
     def prev_msg(self, repeat_factor: int = 1) -> None:
         if self.model.prev_msg(repeat_factor):
             self.render_msgs()
@@ -554,7 +555,7 @@ class Controller:
             )
         return self._open_msg(msg, cmd)
 
-    @bind(msg_handler, ["l", "^J", "д", "261`"])
+    @bind(msg_handler, ["l", "^J", "д", f"{KEY_RIGHT}`"])
     def open_current_msg(self) -> None:
         """Open msg or file with cmd in mailcap"""
         msg = MsgProxy(self.model.current_msg)
@@ -710,7 +711,7 @@ class Controller:
     def view_contacts(self) -> None:
         self._get_user_ids()
 
-    @bind(chat_handler, ["l", "^J", "^E", "д", "261`"])
+    @bind(chat_handler, ["l", "^J", "^E", "д", f"{KEY_RIGHT}`"])
     def handle_msgs(self) -> Optional[str]:
         rc = self.handle(msg_handler, 0.2)
         if rc == "QUIT":
@@ -723,13 +724,13 @@ class Controller:
         if self.model.first_chat():
             self.render()
 
-    @bind(chat_handler, ["j", "^B", "^N", "о", "258`"], repeat_factor=True)
+    @bind(chat_handler, ["j", "^B", "^N", "о", f"{KEY_DOWN}`"], repeat_factor=True)
     @bind(msg_handler, ["]", "ъ"])
     def next_chat(self, repeat_factor: int = 1) -> None:
         if self.model.next_chat(repeat_factor):
             self.render()
 
-    @bind(chat_handler, ["k", "^C", "^P", "л", "259`"], repeat_factor=True)
+    @bind(chat_handler, ["k", "^C", "^P", "л", f"{KEY_UP}`"], repeat_factor=True)
     @bind(msg_handler, ["[", "х"])
     def prev_chat(self, repeat_factor: int = 1) -> None:
         if self.model.prev_chat(repeat_factor):
