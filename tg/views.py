@@ -160,20 +160,75 @@ class StatusView:
                 key = self.win.get_wch(
                         0, string_len_dwc(line[:pos-x0] + prefix)
                 )
-                key = ord(key)
-                if key == 10:  # return
-                    break
-                elif key == 127:  # del
-                    if buff:
-                        buff = buff[:-1]
-                elif key in (8, 23):
-                    npos = word_back(buff[:pos])
-                    buff = buff[:npos] + buff[pos:]
-                    pos = npos
-                elif key in (7, 27):  # (^G, <esc>) cancel
-                    return None
-                elif chr(key).isprintable():
-                    buff += chr(key)
+                if isinstance(key, str):
+                    key = ord(key)
+                    if key == 10:  # return
+                        break
+                    elif key == 127:  # del
+                        if buff:
+                            buff = buff[:pos-1] + buff[pos:]
+                            pos -= 1
+                    elif key in (8, 23): # ^W: delete previous word
+                        npos = word_back(buff[:pos])
+                        buff = buff[:npos] + buff[pos:]
+                        pos = npos
+                    elif key == 21: # ^U: delete to the beginning of the line
+                        buff = buff[pos:]
+                        pos = 0
+                    elif key == 11: # ^K: delete to the end of the line
+                        buff = buff[:pos]
+                    elif key == 1: # ^A: same as KEY_HOME
+                        pos = 0
+                    elif key == 5: # ^E: same as KEY_END
+                        pos = len(buff)
+                    elif key in (7, 27):  # (^G, <esc>) cancel
+                        return None
+                    elif chr(key).isprintable():
+                        buff = buff[:pos] + chr(key) + buff[pos:]
+                        pos += 1
+                else: # get_wch returned an integer: function/arrow keys,...
+                    if key == curses.KEY_LEFT:
+                        pos -= 1
+                    elif key == curses.KEY_RIGHT:
+                        pos += 1
+                    elif key == curses.KEY_HOME:
+                        pos = 0
+                    elif key == curses.KEY_END:
+                        pos = len(buff)
+                    elif key == curses.KEY_DC: # delete key
+                        if pos == len(buff):
+                            buff = buff[:pos-1] + buff[pos:]
+                            pos -= 1
+                        else:
+                            buff = buff[:pos] + buff[pos+1:]
+                    elif key == curses.KEY_BACKSPACE:
+                        buff = buff[:pos-1] + buff[pos:]
+                        pos -= 1
+                    else:
+                        # the integer result of get_wch for ctrl+arrows, ctrl+del, etc. is terminal-dependent.
+                        # getkey() returns key names that seem more universal
+                        curses.ungetch(key)
+                        key = self.win.getkey()
+                        if key == 'kDC5': # ctrl+delete: delete word after cursor
+                            npos = pos + word_forth(buff[pos:])
+                            buff = buff[:pos] + buff[npos:]
+                        elif key == 'kLFT5': # ctrl+left: move left by a word
+                            pos = word_back(buff[:pos])
+                        elif key == 'kRIT5': # ctrl+right: move right by a word
+                            pos += word_forth(buff[pos:])
+
+                if pos > len(buff):
+                    pos = len(buff)
+                if pos < 0:
+                    pos = 0
+
+                # check if we need to shift the displayed part along the buffer
+                if pos > x0 and string_len_dwc(buff[x0:pos]) >= wline - 1:
+                    x0 = string_len_dwc(buff[:pos]) - wline + 1
+                if pos <= x0 + wline//2:
+                    x0 = pos - wline//2
+                if x0 < 0:
+                    x0 = 0
         finally:
             self.win.clear()
             curses.curs_set(0)
@@ -256,7 +311,7 @@ class ChatView:
 
             for attr, elem in zip(
                 self._chat_attributes(is_selected, title, last_msg_sender),
-                [f"{date} ", title, sender_label, f" {last_msg}"],
+                [f"{date} ", title, sender_label],
             ):
                 if not elem:
                     continue
@@ -480,7 +535,7 @@ class MsgView:
             for msg_idx, msg_item in msgs[ignore_before:]:
                 is_selected_msg = current_msg_idx == msg_idx
                 msg_proxy = MsgProxy(msg_item)
-                dt = msg_proxy.date.strftime("%H:%M:%S")
+                dt = msg_proxy.date.strftime("%H:%M")
                 user_id_item = msg_proxy.sender_id
 
                 user_id = self.model.users.get_user_label(user_id_item)

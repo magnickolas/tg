@@ -69,13 +69,16 @@ def bind(
 
 
 class Controller:
+    DEFAULT_CHAT_SIZE = 0.4
+    REDUCED_CHAT_SIZE = 0.05
+
     def __init__(self, model: Model, view: View, tg: Tdlib) -> None:
         self.model = model
         self.view = view
         self.queue: Queue = Queue()
         self.is_running = True
         self.tg = tg
-        self.chat_size = 0.5
+        self.chat_size = Controller.DEFAULT_CHAT_SIZE
 
     @bind(msg_handler, ["c", "с"])
     def show_chat_info(self) -> None:
@@ -713,10 +716,10 @@ class Controller:
 
     @bind(chat_handler, ["l", "^J", "^E", "д", f"{KEY_RIGHT}`"])
     def handle_msgs(self) -> Optional[str]:
-        rc = self.handle(msg_handler, 0.2)
+        rc = self.handle(msg_handler, Controller.REDUCED_CHAT_SIZE)
         if rc == "QUIT":
             return rc
-        self.chat_size = 0.5
+        self.chat_size = Controller.DEFAULT_CHAT_SIZE
         self.resize()
 
     @bind(chat_handler, ["g", "п"])
@@ -779,13 +782,17 @@ class Controller:
     def toggle_pin(self) -> None:
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]
-        toggle = not chat["is_pinned"]
+        if "is_pinned" in chat:
+            toggle = not chat["is_pinned"]
+        else:
+            toggle = True
+        chat["is_pinned"] = toggle
         self.tg.toggle_chat_is_pinned(chat_id, toggle)
         self.render()
 
     def run(self) -> None:
         try:
-            self.handle(chat_handler, 0.5)
+            self.handle(chat_handler, Controller.DEFAULT_CHAT_SIZE)
             self.queue.put(self.close)
         except Exception:
             log.exception("Error happened in main loop")

@@ -90,18 +90,18 @@ def update_chat_order(controller: Controller, update: Dict[str, Any]) -> None:
         controller.refresh_current_chat(current_chat_id)
 
 
-@update_handler("updateChatPosition")
-def update_chat_position(
-    controller: Controller, update: Dict[str, Any]
-) -> None:
-    current_chat_id = controller.model.current_chat_id
-    chat_id = update["chat_id"]
-    info = {}
-    info["order"] = update["position"]["order"]
-    if "is_pinned" in update:
-        info["is_pinned"] = update["is_pinned"]
-    if controller.model.chats.update_chat(chat_id, **info):
-        controller.refresh_current_chat(current_chat_id)
+# @update_handler("updateChatPosition")
+# def update_chat_position(
+#     controller: Controller, update: Dict[str, Any]
+# ) -> None:
+#     current_chat_id = controller.model.current_chat_id
+#     chat_id = update["chat_id"]
+#     info = {}
+#     info["order"] = update["position"]["order"]
+#     if "is_pinned" in update:
+#         info["is_pinned"] = update["is_pinned"]
+#     if controller.model.chats.update_chat(chat_id, **info):
+#         controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatTitle")
